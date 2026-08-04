@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 
 // One endpoint, several independent slots — each stored under its own key so
 // they can NEVER overwrite each other:
@@ -345,6 +345,19 @@ export default handleRequest;
    Nothing else in the function had to change.
 ------------------------------------------------------------------- */
 export const handler = async (event) => {
+  /* In legacy mode Netlify does NOT inject the Blobs credentials automatically —
+     that only happens for modern-format functions. Without this line every call
+     dies with:
+
+         MissingBlobsEnvironmentError - The environment has not been configured
+         to use Netlify Blobs
+
+     connectLambda() reads the credentials back out of the legacy event object,
+     so no site ID, token or environment variable is needed. It is wrapped
+     because it does not exist on older copies of @netlify/blobs, and is a no-op
+     when the function happens to run in modern mode. */
+  try { if (typeof connectLambda === "function") connectLambda(event); } catch {}
+
   const method = (event && event.httpMethod) || "GET";
   const hdrs = (event && event.headers) || {};
 
