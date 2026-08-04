@@ -1002,7 +1002,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04e · rules-update</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04f · bus-on-row</div>
     </section>
 
     <!-- TODAY -->
@@ -1353,6 +1353,18 @@
   function tbcChip(e){
     return isTBCFixture(e) ? '<div class="sub" style="color:#ff9d52;font-weight:600"><i class="ti ti-hourglass-low"></i> To be confirmed &mdash; depends on the standings</div>' : '';
   }
+  /* Bus departure on the fixture row itself. It is the earliest time on that fixture
+     and the easiest one to miss, so it should not need a tap to find. Supporters are
+     not on the bus, so they do not get told to be on it \u2014 the full explanation, walk
+     and parking still live on the fixture screen. */
+  function busChip(e){
+    var t = e && e.meta && e.meta.busDeparture;
+    if(!hasVal(t)) return '';
+    if((typeof isSupporter==='function') && isSupporter()) return '';
+    return '<div class="sub" style="color:#7bdcc0;font-weight:600">'+
+      '<i class="ti ti-bus"></i> Bus departs '+esc(t)+'</div>';
+  }
+
   function rowHTML(e,staff){
     var dt=dispType(e), lbl=dispLabel(e), lc=locText(e);
     var tag=lbl?'<span class="typetag">'+lbl+'</span>':'';
@@ -1361,6 +1373,7 @@
       '<div style="flex:1;min-width:0">'+tag+'<div class="ttl">'+esc(e.title)+'</div>'+
       (e.sub?'<div class="sub">'+esc(e.sub)+'</div>':'')+
       tbcChip(e)+
+      busChip(e)+
       (lc?'<div class="sub"><i class="ti ti-map-pin"></i> '+esc(lc)+'</div>':'')+
       (e.kit?'<div class="sub"><i class="ti ti-shirt"></i> '+esc(e.kit)+'</div>':'')+
       tagFor(e,staff)+rollCallBtn(e)+lineupBtn(e)+'</div>'+
@@ -1372,7 +1385,8 @@
     if(targetMs){ cd='<div class="cd"><i class="ti ti-clock"></i><span class="lbl">Starts in</span><b class="cdval" data-target="'+targetMs+'">&mdash;</b></div>'; }
     else if(e.start){ cd='<div class="cd"><i class="ti ti-clock"></i><span class="lbl">Starts in</span><b class="cdval" data-secs="'+toSecs(e.start)+'">'+e.start+'</b></div>'; }
     return '<div class="next n-'+dispType(e)+'" onclick="openEvent('+(e._i)+')" style="cursor:pointer"><div class="head"><b>'+esc(e.title)+'</b><em>'+esc(e.time)+'</em></div>'+
-      (lc?'<div class="loc"><i class="ti ti-map-pin"></i> '+esc(lc)+'</div>':'')+ cd +
+      (lc?'<div class="loc"><i class="ti ti-map-pin"></i> '+esc(lc)+'</div>':'')+
+      (busChip(e)?'<div class="loc" style="color:#7bdcc0;font-weight:600"><i class="ti ti-bus"></i> Bus departs '+esc(e.meta.busDeparture)+'</div>':'')+ cd +
       (e.kit?'<span class="pill">'+esc(e.kit)+'</span>':'')+tagFor(e,staff)+rollCallBtn(e)+lineupBtn(e)+'</div>';
   }
 
