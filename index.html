@@ -271,6 +271,9 @@
   .chbar.vote.done{background:linear-gradient(105deg,rgba(22,22,21,.26),rgba(22,22,21,.10)),
                               linear-gradient(105deg,#51cea7,#3fae8b)}
   .chbar.vote.shut{filter:saturate(.5) brightness(.8)}
+  /* How it works: ocean purple alone, so all three bars read as three different things. */
+  .chbar.fmt{background:linear-gradient(105deg,rgba(22,22,21,.24),rgba(22,22,21,.06) 60%),
+                        linear-gradient(105deg,#7777c9,#5f5fb4)}
   .chbar .cbhint i{font-size:14px;vertical-align:-1px}
   .votecard .vcicon{width:42px;height:42px;border-radius:12px;background:rgba(0,0,0,.18);color:#fff;
     display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto}
@@ -1002,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04h · format-highlight</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04j · format-bar-only</div>
     </section>
 
     <!-- TODAY -->
@@ -1593,7 +1596,7 @@
        challenge nobody does. Set before the early returns so it survives the
        countdown and out-of-tour views too. */
     var tc=document.getElementById('todayChallenge');
-    if(tc) tc.innerHTML=a2hsNudge()+voteBarHTML(10)+challengeMoreCard(10);
+    if(tc) tc.innerHTML=a2hsNudge()+formatBarHTML(10)+voteBarHTML(10)+challengeMoreCard(10);
     EVENTS.sort(function(a,b){ return (a.day-b.day) || (tmin(a.time)-tmin(b.time)); });
     EVENTS.forEach(function(e,i){e._i=i;});
     var staff=false;
@@ -4330,12 +4333,29 @@
     '</div></div>';
   }
 
+  /* Format bar for the itinerary. The rules tab still carries the same panel, but
+     nobody opens Rules looking for "what happens on day three" \u2014 they open the
+     schedule. Shown to every role, supporters included. */
+  function formatBarHTML(margin){
+    var m=(margin===undefined?16:margin);
+    return '<div class="chbar fmt" style="margin-top:'+m+'px" onclick="openFormat()">'+
+      '<span class="cbicon"><i class="ti ti-trophy"></i></span>'+
+      '<div class="cbname">How it works</div>'+
+      '<span class="cbhint">Format &amp; finals</span>'+
+      '<i class="ti ti-chevron-right cbarr"></i></div>';
+  }
+  function openFormat(){
+    showOnly('s-detail');
+    document.getElementById('appTitle').textContent='How it works';
+    document.getElementById('appSub').textContent='Format & finals';
+    document.getElementById('detailBody').innerHTML=formatPanel();
+  }
+
   function rulesHTML(){
     var h='<div style="display:flex;gap:11px;align-items:flex-start;background:var(--surface);border:1px solid var(--surface-line);border-radius:14px;padding:13px 15px;margin:6px 2px 14px">'+
       '<i class="ti ti-gavel" style="font-size:24px;color:var(--orange)"></i>'+
       '<div style="flex:1;min-width:0"><b style="display:block;color:#fff;font-size:15px">GCS rules &amp; playing conditions</b>'+
       '<span style="color:var(--muted);font-size:13px">All matches follow the MCC Laws of Cricket except where varied below.</span></div></div>';
-    h+=formatPanel();
     if(hasVal(SETTINGS.rulesUrl)){
       h+='<a class="cibig" href="'+attr(normUrl(SETTINGS.rulesUrl))+'" target="_blank" rel="noopener" style="text-decoration:none;margin:0 0 14px"><i class="ti ti-file-text"></i> Open the official PDF</a>';
     }
