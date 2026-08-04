@@ -1002,7 +1002,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04a · u15s-oakham</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04c · wilson-bus</div>
     </section>
 
     <!-- TODAY -->
@@ -6091,6 +6091,14 @@
      ========================================================================== */
   function pitchNum(p){ var m=String(p||'').match(/(\d+)/); return m?m[1]:''; }
 
+  /* Wilson Fields is a SEPARATE ground on Ashwell Road, roughly half a mile
+     north-east of Doncaster Close \u2014 not another strip on the same field. With no
+     transport laid on at Oakham, anyone playing there has to make their own way,
+     so it gets its own map and its own maps link rather than sharing the other. */
+  var WILSON_MAPS  = 'https://maps.app.goo.gl/KuJL2TCmFX6Y2hW49';
+  var WILSON_ADDR  = 'Wilson Fields, Ashwell Road, Oakham LE15 7QH';
+  function isWilson(p){ return /wilson/i.test(String(p||'')); }
+
   function pitchMapSVG(highlight){
     var hi = pitchNum(highlight);
     /* Compressed vertically against the true geography so the whole ground fits on one
@@ -6101,9 +6109,23 @@
       '2': {x: 214,y: 104, w:134, h: 68, sx: 264, sy: 112, sw: 32, sh: 52},
       '1': {x: 82, y: 244, w:188, h: 74, sx: 152, sy: 252, sw: 50, sh: 58}
     };
+    /* U15s use pitches 1 and 2 here; the third fixture of every round is away at
+       Wilson Fields. 3 and 4 are still drawn, greyed and labelled, so nobody walks
+       to a strip that has no game on it. */
+    var LIVE = {'1':1, '2':1};
     var order = ['4','3','2','1'], out = '';
     order.forEach(function(n){
       var p = P[n], on = (hi === n);
+      if(!LIVE[n]){
+        out +=
+          '<g opacity=".38">' +
+            '<rect x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" rx="9" ' +
+              'fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.22)" stroke-width="1.5" stroke-dasharray="5 5"/>' +
+            '<text x="'+(p.x+p.w/2)+'" y="'+(p.y+p.h/2+4)+'" text-anchor="middle" font-size="10" ' +
+              'font-weight="700" letter-spacing="0.5" fill="rgba(255,255,255,.75)">NOT IN USE</text>' +
+          '</g>';
+        return;
+      }
       out +=
         '<g>' +
           '<rect x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" rx="9" ' +
@@ -6169,8 +6191,74 @@
   /* The map, inline on a fixture, with that game's pitch picked out. Shown on the
      event itself rather than behind a button \u2014 a player opening their next game
      wants to know where to go without another tap. */
+  function wilsonMapSVG(){
+    return '<svg viewBox="0 0 372 336" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">' +
+      '<defs>' +
+        '<pattern id="wfgcs" width="66" height="52" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">' +
+          '<text x="0" y="20" font-size="15" font-weight="700" font-style="italic" fill="#51cea7" opacity=".07">GCS</text>' +
+          '<text x="33" y="46" font-size="15" font-weight="700" font-style="italic" fill="#7777c9" opacity=".07">GCS</text>' +
+        '</pattern>' +
+        '<pattern id="wftree" width="15" height="15" patternUnits="userSpaceOnUse">' +
+          '<circle cx="7.5" cy="7.5" r="6" fill="#51cea7" opacity=".16"/></pattern>' +
+      '</defs>' +
+
+      '<rect x="0" y="0" width="372" height="336" rx="14" fill="#161615"/>' +
+      '<rect x="0" y="0" width="372" height="336" rx="14" fill="rgba(81,206,167,.07)"/>' +
+      '<rect x="0" y="0" width="372" height="336" rx="14" fill="url(#wfgcs)"/>' +
+      '<rect x="0.75" y="0.75" width="370.5" height="334.5" rx="13" fill="none" stroke="rgba(81,206,167,.28)" stroke-width="1.5"/>' +
+
+      /* Ashwell Road runs along the bottom; the entrance is off it */
+      '<rect x="0" y="298" width="372" height="38" fill="#0e0e0d"/>' +
+      '<line x1="8" y1="317" x2="364" y2="317" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-dasharray="10 10"/>' +
+      '<rect x="124" y="308" width="124" height="18" rx="4" fill="#0e0e0d"/>' +
+      '<text x="186" y="321" fill="rgba(255,255,255,.8)" font-size="11" font-weight="700" text-anchor="middle">ASHWELL ROAD</text>' +
+
+      '<rect x="14" y="30" width="34" height="240" fill="url(#wftree)"/>' +
+      '<rect x="324" y="30" width="34" height="240" fill="url(#wftree)"/>' +
+
+      /* the pitch */
+      '<rect x="66" y="52" width="240" height="188" rx="12" fill="rgba(255,124,26,.24)" stroke="#ff7c1a" stroke-width="3"/>' +
+      '<rect x="160" y="104" width="52" height="84" rx="4" fill="rgba(255,124,26,.55)" stroke="#ff7c1a" stroke-width="1"/>' +
+      '<g><rect x="232" y="58" width="68" height="16" rx="5" fill="#161615" opacity=".92"/>' +
+        '<text x="266" y="69.5" text-anchor="middle" font-size="9.5" font-weight="700" ' +
+        'letter-spacing="0.4" fill="#ff9d52">YOUR PITCH</text></g>' +
+      '<text x="84" y="88" font-size="15" font-weight="700" font-style="italic" fill="#ff7c1a">WILSON FIELDS</text>' +
+
+      /* pavilion + entrance */
+      '<rect x="66" y="252" width="76" height="30" rx="5" fill="#7777c9"/>' +
+      '<path d="M66 252 L104 240 L142 252 Z" fill="#9a9ad6"/>' +
+      '<text x="152" y="264" fill="#ffffff" font-size="11" font-weight="700">PAVILION</text>' +
+      '<text x="152" y="276" fill="rgba(255,255,255,.7)" font-size="9">First aid</text>' +
+      '<path d="M316 306 L316 268" stroke="#51cea7" stroke-width="2.5" stroke-dasharray="5 4"/>' +
+      '<path d="M316 260 L310 273 L322 273 Z" fill="#51cea7"/>' +
+      '<text x="306" y="292" fill="#51cea7" font-size="9" font-weight="700" text-anchor="end">ENTRANCE</text>' +
+      '</svg>';
+  }
+
+  /* Players are bussed across; supporters are not. Same panel, different answer
+     depending on who is looking at it \u2014 a parent told to "catch the bus" would turn
+     up for a seat that isn't theirs. */
+  function wilsonCallout(){
+    var supporter = (typeof isSupporter==='function') && isSupporter();
+    return '<div class="chintro"><b>This one is not at the main ground.</b>' +
+      '<p>Wilson Fields is on Ashwell Road (LE15 7QH), about half a mile north-east of ' +
+      'Doncaster Close \u2014 roughly fifteen minutes on foot.</p>' +
+      (supporter
+        ? '<p>The bus is for players and team staff only. Supporters make their own way across: ' +
+          'walk it, or drive round \u2014 there is parking on site.</p>'
+        : '<p><b>A bus takes you over and brings you back.</b> Your coach will give you the ' +
+          'departure time \u2014 be at the pavilion for it, because it won\u2019t wait.</p>') +
+      '</div>';
+  }
+
   function matchPitchMap(e){
     if(!isMatch(e) || !e.meta || !e.meta.pitch) return '';
+    if(isWilson(e.meta.pitch) || isWilson(e.meta.ground)){
+      return '<div class="eyebrow" style="margin-top:16px">Where you\u2019re playing</div>'+
+        '<div class="pmnow tight"><span class="n"><i class="ti ti-map-pin"></i></span>'+
+          '<div><b>Wilson Fields</b><span>Ashwell Road \u00b7 half a mile from the main ground</span></div></div>'+
+        '<div class="pmwrap">'+wilsonMapSVG()+'</div>'+ wilsonCallout();
+    }
     var n=pitchNum(e.meta.pitch);
     if(!n) return '';
     return '<div class="eyebrow" style="margin-top:16px">Where you\u2019re playing</div>'+
@@ -6180,24 +6268,46 @@
   }
   function openPitchMap(pitch){
     showOnly('s-pitchmap');
-    var n = pitchNum(pitch);
     document.getElementById('appTitle').textContent='Pitch map';
+
+    /* Wilson Fields is its own ground, so it gets its own screen rather than a
+       highlight on the Doncaster Close map. */
+    if(isWilson(pitch)){
+      document.getElementById('appSub').textContent='Wilson Fields \u00b7 Ashwell Road';
+      document.getElementById('pitchMapBody').innerHTML =
+        '<div class="pmnow"><span class="n"><i class="ti ti-map-pin"></i></span><div><b>You\u2019re at Wilson Fields</b>'+
+          '<span>Ashwell Road, Oakham LE15 7QH \u2014 not the main ground.</span></div></div>'+
+        '<div class="pmwrap">'+wilsonMapSVG()+'</div>'+
+        '<div class="pmkey">'+
+          '<div><span class="sw pav"></span> Pavilion \u2014 first aid</div>'+
+        '</div>'+
+        wilsonCallout()+
+        '<div class="chintro"><b>Getting there from Doncaster Close</b><p>Players and team staff are bussed over and back \u2014 your coach has the departure time. Supporters make their own way: out onto Kilburn Road then north-east, about half a mile, or fifteen minutes on foot. The sketch above is rough; tap below for real directions and parking.</p></div>'+
+        '<button class="cta chcta" onclick="openWilsonMap()"><i class="ti ti-map-pin"></i> Open Wilson Fields in maps</button>'+
+        '<button class="cta chcta" style="margin-top:8px;background:rgba(255,255,255,.08)" onclick="openPitchMap(\'\')"><i class="ti ti-arrow-left"></i> Main ground map</button>';
+      return;
+    }
+
+    var n = pitchNum(pitch);
     document.getElementById('appSub').textContent = n ? ('Pitch '+n+' \u00b7 Doncaster Close') : 'Doncaster Close, Oakham School';
     document.getElementById('pitchMapBody').innerHTML =
       (n ? '<div class="pmnow"><span class="n">'+esc(n)+'</span><div><b>You\u2019re on Pitch '+esc(n)+'</b>'+
-           '<span>Highlighted below. All four pitches are on the same field.</span></div></div>' : '')+
+           '<span>Highlighted below, at the main ground.</span></div></div>' : '')+
       '<div class="pmwrap">'+pitchMapSVG(n)+'</div>'+
       '<div class="pmkey">'+
         '<div><span class="sw pav"></span> Pavilion \u2014 check-in, first aid, team meetings</div>'+
         '<div><span class="sw net"></span> Practice nets</div>'+
       '</div>'+
-      '<div class="chintro"><b>Finding your pitch</b><p>The pavilion sits at the Kilburn Road end. Pitch 1 is the far one to the south, 3 and 4 run up the Kilburn Road side, and 2 sits over towards the trees. Every fixture on your schedule tells you which pitch you\u2019re on.</p></div>'+
-      '<button class="cta chcta" onclick="openGroundMap()"><i class="ti ti-map-pin"></i> Open in maps</button>';
+      '<div class="chintro"><b>Finding your pitch</b><p>The pavilion sits at the Kilburn Road end. Pitch 1 is the far one to the south and 2 sits over towards the trees. The two strips marked <i>not in use</i> have no games on them this week. Every fixture on your schedule tells you where you\u2019re playing.</p></div>'+
+      '<div class="chintro"><b>One fixture a round is off site.</b><p>The third game in every round is at <b>Wilson Fields</b> on Ashwell Road, about half a mile away. Players are bussed over from the pavilion and back again; supporters make their own way.</p></div>'+
+      '<button class="cta chcta" onclick="openGroundMap()"><i class="ti ti-map-pin"></i> Open in maps</button>'+
+      '<button class="cta chcta" style="margin-top:8px;background:rgba(255,255,255,.08)" onclick="openPitchMap(\'Wilson Fields\')"><i class="ti ti-map-pin"></i> Wilson Fields map</button>';
   }
   function openGroundMap(){
     var q=encodeURIComponent('Doncaster Close Playing Fields, Oakham School, Oakham LE15 6QL');
     window.open('https://www.google.com/maps/search/?api=1&query='+q,'_blank','noopener');
   }
+  function openWilsonMap(){ window.open(WILSON_MAPS,'_blank','noopener'); }
 
   /* ==========================================================================
      VIEW AS  —  tournament staff can see the app exactly as any other role sees
