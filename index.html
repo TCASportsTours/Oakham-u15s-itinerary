@@ -1002,7 +1002,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04c · wilson-bus</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04e · rules-update</div>
     </section>
 
     <!-- TODAY -->
@@ -1979,6 +1979,9 @@
       facts+=fact('When', dayLabel);
       facts+=fact('Format', e.sub);
       facts+=fact('Kit', e.kit);
+      /* Sits above Arrive because it happens first, and because missing the bus
+         is the one thing on this screen a player can actually get wrong. */
+      facts+=fact('Bus departs', m.busDeparture);
       facts+=fact('Arrive', m.arrival);
       facts+=fact('Start', m.start);
       facts+=fact('Lunch', m.lunch);
@@ -2429,9 +2432,10 @@
     h+=mapLink('Ground', e.loc||m.ground, [m.ground,m.pitch].filter(Boolean).join(' \u00b7 '));
     h+=info('ti-shirt','Kit', e.kit);
     h+=info('ti-circle','Ball', m.ball);
-    var hasTiming = hasVal(m.arrival)||hasVal(m.start)||hasVal(m.lunch);
+    var hasTiming = hasVal(m.arrival)||hasVal(m.start)||hasVal(m.lunch)||hasVal(m.busDeparture);
     if(hasTiming){
       h+='<div class="eyebrow" style="margin-top:16px;color:#9a9ad6"><i class="ti ti-clock-hour-4"></i> Ground timetable</div>';
+      h+=info('ti-bus','Bus departs', m.busDeparture);
       h+=info('ti-walk','Arrival at ground', m.arrival);
       h+=info('ti-player-play','Start of play', m.start);
       h+=info('ti-tools-kitchen-2','Lunch', m.lunch);
@@ -4142,8 +4146,12 @@
     {n:'3',t:'Fair & Unfair Play',blocks:[
       'The umpires are the sole judges of fair and unfair play and may intervene at any time \u2014 including for:',
       ['list',['Time wasting','Damaging the pitch','Dangerous or unfair bowling','Ball tampering','Any other action considered unfair']]]},
-    {n:'4',t:'Scorers',blocks:[
+    {n:'4',t:'Scorers & Scoreboard',blocks:[
       'Each team must provide a scoring representative for every match. The scorer should stay close to the official GCS scorer or umpire to help with player identification and scoring queries.',
+      ['sub','Scoreboard'],
+      'The batting side operates the scoreboard. How often it is updated depends on the board:',
+      ['list',['Electronic boards \u2014 updated ball by ball.','Manual boards \u2014 updated over by over.']],
+      'Either way it must be kept current, so players, umpires and spectators can all see the state of the game.',
       'Any dispute about scoring or the interpretation of playing conditions during a match must be raised immediately with the scorer or umpire.']},
     {n:'5',t:'Disputes',blocks:[
       'Any dispute about the application or interpretation of these Playing Conditions is referred to GCS Tournament Management, whose decision is final and binding.']},
@@ -4156,7 +4164,12 @@
       ['sub','Girls\u2019 participation'],'Unless a tournament states otherwise, girls may play up to two years above the stated age group.',
       'Representative cricket means county, state, regional, territorial or equivalent teams. All overage players must be approved in advance by GCS Tournament Management.']},
     {n:'7',t:'Number of Players',blocks:[
-      'A match-day squad may be up to 14 players. No more than 11 may bat or field at any one time.',
+      'A match-day squad may be up to 14 players. Eleven bat and eleven field, unless both sides agree the variation below.',
+      ['sub','Playing with equal numbers'],
+      'Where both sides have the same number of players available, the two team managers may agree to play with that number rather than eleven \u2014 12 v 12, 13 v 13, whatever the two squads can match.',
+      ['list',['Everyone bats.','Only eleven field at any one time, so the fielding side rotates players through.','The innings closes one wicket short of the batting number \u2014 eleven wickets in a 12-a-side game, twelve in a 13-a-side.']],
+      'It has to be agreed by both managers and the umpires before the toss, and it applies to both innings. If the squads are not equal, the match reverts to eleven a side.',
+      ['sub','Nomination'],
       'All players must be nominated to the scorer or umpire before the toss. There is no requirement to nominate a batting order.',
       'Substitutions need umpire approval and are normally made at the end of an over, the fall of a wicket, or during an interval. GCS may permit player replacements where needed for the safe and fair running of the tournament.']},
     {n:'8',t:'Player Welfare',blocks:[
@@ -6238,16 +6251,19 @@
   /* Players are bussed across; supporters are not. Same panel, different answer
      depending on who is looking at it \u2014 a parent told to "catch the bus" would turn
      up for a seat that isn't theirs. */
-  function wilsonCallout(){
+  function wilsonCallout(busTime){
     var supporter = (typeof isSupporter==='function') && isSupporter();
+    var when = hasVal(busTime)
+      ? 'The bus leaves the pavilion at <b>'+esc(busTime)+'</b>.'
+      : 'Your coach will give you the departure time.';
     return '<div class="chintro"><b>This one is not at the main ground.</b>' +
       '<p>Wilson Fields is on Ashwell Road (LE15 7QH), about half a mile north-east of ' +
       'Doncaster Close \u2014 roughly fifteen minutes on foot.</p>' +
       (supporter
         ? '<p>The bus is for players and team staff only. Supporters make their own way across: ' +
           'walk it, or drive round \u2014 there is parking on site.</p>'
-        : '<p><b>A bus takes you over and brings you back.</b> Your coach will give you the ' +
-          'departure time \u2014 be at the pavilion for it, because it won\u2019t wait.</p>') +
+        : '<p><b>A bus takes you over and brings you back.</b> ' + when +
+          ' Be there for it, because it won\u2019t wait.</p>') +
       '</div>';
   }
 
@@ -6257,7 +6273,7 @@
       return '<div class="eyebrow" style="margin-top:16px">Where you\u2019re playing</div>'+
         '<div class="pmnow tight"><span class="n"><i class="ti ti-map-pin"></i></span>'+
           '<div><b>Wilson Fields</b><span>Ashwell Road \u00b7 half a mile from the main ground</span></div></div>'+
-        '<div class="pmwrap">'+wilsonMapSVG()+'</div>'+ wilsonCallout();
+        '<div class="pmwrap">'+wilsonMapSVG()+'</div>'+ wilsonCallout(e.meta.busDeparture);
     }
     var n=pitchNum(e.meta.pitch);
     if(!n) return '';
