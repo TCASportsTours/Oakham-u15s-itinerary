@@ -36,7 +36,28 @@ const handleRequest = async (req) => {
   // read from another region can keep returning an older copy, which is what made the
   // app (and admin on reload) "revert" to a previously-published dataset.
   // Same store name as before, so all existing data is preserved.
-  const store = getStore({ name: "parkside-tour", consistency: "strong" });
+  /* Strong consistency is only available to modern-format functions, which are
+     handed an 'uncachedEdgeURL' by the platform. In legacy mode that property is
+     absent and asking for it throws:
+
+         BlobsConsistencyError - Netlify Blobs has failed to perform a read using
+         strong consistency because the environment has not been configured with
+         an 'uncachedEdgeURL' property
+
+     So ask for it, and quietly fall back if the platform cannot provide it. If
+     this site is ever switched into modern mode, strong consistency returns on
+     its own with no code change. See the note in README about why it matters. */
+  let store;
+  try {
+    store = getStore({ name: "parkside-tour", consistency: "strong" });
+    await store.get("__probe__");            // forces the consistency check now
+  } catch (e) {
+    if (e && e.name === "BlobsConsistencyError") {
+      store = getStore({ name: "parkside-tour" });
+    } else {
+      throw e;
+    }
+  }
   const url = new URL(req.url);
   const type = url.searchParams.get("type") || "";
   const key = type ? type : "current";            // "current" = the published itinerary
