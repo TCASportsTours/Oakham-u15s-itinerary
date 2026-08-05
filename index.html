@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑04j · format-bar-only</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑05c · gate-all-players</div>
     </section>
 
     <!-- TODAY -->
@@ -1739,9 +1739,13 @@
     if(tf){ if(isAdmin){ var _o='<option value=\"__all__\">All teams</option>'; (TEAMS_LIST||[]).forEach(function(t){ _o+='<option value=\"'+String(t).replace(/\"/g,'&quot;')+'\">'+t+'</option>'; }); tf.innerHTML=_o; tf.value=viewAll?'__all__':currentSquad; tf.style.display=''; } else { tf.style.display='none'; } }
     ciInit();renderToday();renderMore();loadWeather();startAlerts();startLiveClock();fetchLineups(renderToday);
     /* A player has to read and accept the rules before they get into the app at all.
-       Once only, stored against that player on that device. Staff, supporters and
-       officials go straight in \u2014 the rules are about entering the challenge. */
-    if(role==='player' && myPlayerId() && CHALLENGES.length && !chTermsAccepted()){
+       Once only, recorded on the server against the player. Staff, supporters and
+       officials go straight in.
+
+       The behaviour agreement is NOT tied to the Challenges tab \u2014 emptying that tab
+       switches the challenge off, but players must still accept how they are expected
+       to behave. With no challenges the middle page drops out and it becomes 2 pages. */
+    if(role==='player' && !chTermsAccepted()){
       _termsThen='app'; _termsOK={rules:false,behave:false}; openChTerms(false,1);
     } else {
       go('today');
@@ -4572,6 +4576,12 @@
     currentPlayer=name;
     if(c.staff){ staffPending=false; } else { savePlayer(c.team,name); }
     signIn(c.team, c.staff);
+    /* If they accepted anonymously and have now identified themselves, put a proper
+       named record on the server \u2014 otherwise the acceptance exists only on the phone. */
+    if(!c.staff && name && chTermsAccepted()){
+      try{ localStorage.setItem(chTermsKey(),'1'); }catch(e){}
+      recordConsent();
+    }
   }
   /* Second coaches, stand-ins and anyone added late: type a name rather than signing in
      blank. The name is what appears on roll calls and batting orders, so an unnamed staff
@@ -5136,15 +5146,32 @@
   /* Rules screen. Doubles as a gate: the first time a player opens the challenge they
      have to read and accept before they can enter anything. Stored per player on their
      own device, so a shared phone doesn't accept on someone else's behalf. */
-  function chTermsKey(){ return 'gcs_chterms_'+(SETTINGS.tourName||'tour')+'_'+(myPlayerId()||'anon'); }
-  function chTermsAccepted(){ try{ return localStorage.getItem(chTermsKey())==='1'; }catch(e){ return true; } }
+  function chTermsKey(id){ return 'gcs_chterms_'+(SETTINGS.tourName||'tour')+'_'+(id||myPlayerId()||'anon'); }
+  /* Accepted if it is stored against this player, or was accepted before they picked
+     their name (the 'anon' key), or in memory for this session.
+
+     Fails CLOSED. If localStorage is unavailable this used to return true, which meant
+     a locked-down browser walked straight past the behaviour agreement. Now the worst
+     case is being asked again on a later visit, which is the right way round. */
+  var _termsMem=false;
+  function chTermsAccepted(){
+    if(_termsMem) return true;
+    try{
+      if(localStorage.getItem(chTermsKey())==='1') return true;
+      if(localStorage.getItem(chTermsKey('anon'))==='1') return true;
+    }catch(e){}
+    return false;
+  }
   var _termsThen='challenge';
   function acceptChTerms(){
     var t=document.getElementById('chBehaveTick');
     if(!t||!t.checked){ var w=document.getElementById('chBehaveWarn'); if(w) w.style.display='block'; return; }
-    if(!_termsOK.rules){ chTermsGo(2); return; }
+    if(hasChRules() && !_termsOK.rules){ chTermsGo(2); return; }
     _termsOK.behave=true;
-    try{ localStorage.setItem(chTermsKey(),'1'); }catch(e){}
+    _termsMem=true;
+    /* Stored under the anon key as well, so someone who accepts before choosing their
+       name is not asked again the moment they pick it. */
+    try{ localStorage.setItem(chTermsKey(),'1'); localStorage.setItem(chTermsKey('anon'),'1'); }catch(e){}
     recordConsent();
     _gated=false;
     var ph=document.querySelector('.phone'); if(ph) ph.classList.remove('gated');
@@ -5166,10 +5193,16 @@
   var _termsStep = 1, _gated = false;
   var _termsOK = {rules:false, behave:false};
 
+  /* Page 2 is the challenge rules, so it only exists when there are challenges.
+     Everything else numbers itself around that. */
+  function hasChRules(){ return !!(CHALLENGES && CHALLENGES.length); }
+  function termsPages(){ return hasChRules() ? 3 : 2; }
+  function termsPos(step){ return (!hasChRules() && step===3) ? 2 : step; }
+
   function chStepDots(n){
-    var out='<div class="chsteps3">';
-    for(var i=1;i<=3;i++) out+='<span class="'+(i===n?'on':(i<n?'done':''))+'"></span>';
-    return out+'<b>'+n+' of 3</b></div>';
+    var total=termsPages(), pos=termsPos(n), out='<div class="chsteps3">';
+    for(var i=1;i<=total;i++) out+='<span class="'+(i===pos?'on':(i<pos?'done':''))+'"></span>';
+    return out+'<b>'+pos+' of '+total+'</b></div>';
   }
 
   function openChTerms(readOnly, step){
@@ -5195,12 +5228,16 @@
       '<div class="chintro"><b>Welcome to Oakham.</b><p>Two minutes and you\u2019re in. This is your tournament in your pocket \u2014 here\u2019s what it does.</p></div>'+
       chTermRow('ti-calendar-event','Your whole week','Every fixture, start time and meal, plus <b>which pitch you\u2019re on</b> and a map of the ground.<br><br>If anything moves, it moves here first.')+
       chTermRow('ti-message-2','Your coach messages you here','Team messages and one-to-one.<br><br>It won\u2019t buzz like WhatsApp. The message is waiting for you when you open the app \u2014 so <b>open it a few times a day.</b> First thing, after lunch, after tea.')+
-      chTermRow('ti-bolt','The '+esc(chName()),'A new challenge every day, XP for each one, and leaderboards for players and teams.<br><br><b>It\u2019s a competition, and there are prizes</b> \u2014 for the highest individual score and the top team at the end of the week.<br><br>Optional \u2014 but it\u2019s also how you\u2019ll end up knowing people from the other five squads.')+
+      (hasChRules()? chTermRow('ti-bolt','The '+esc(chName()),'A new challenge every day, XP for each one, and leaderboards for players and teams.<br><br><b>It\u2019s a competition, and there are prizes</b> \u2014 for the highest individual score and the top team at the end of the week.<br><br>Optional \u2014 but it\u2019s also how you\u2019ll end up knowing people from the other five squads.') : '')+
       chTermRow('ti-urgent','If you need help','Tap the orange button at the top of any screen. Tournament staff and your coach, one tap.')+
       chTermRow('ti-device-mobile-down','Keep it handy','Add it to your home screen and it opens like a normal app \u2014 and you won\u2019t have to go hunting through WhatsApp for the link every time.<br><br>There\u2019s a reminder at the top of your schedule until you do.')+
-      (readOnly
-        ? '<button class="cta chcta" onclick="chTermsGo(2)">Next \u2014 challenge rules <i class="ti ti-arrow-right"></i></button>'
-        : '<button class="cta chcta" onclick="chTermsGo(2)">Next <i class="ti ti-arrow-right"></i></button>');
+      (hasChRules()
+        ? (readOnly
+            ? '<button class="cta chcta" onclick="chTermsGo(2)">Next \u2014 challenge rules <i class="ti ti-arrow-right"></i></button>'
+            : '<button class="cta chcta" onclick="chTermsGo(2)">Next <i class="ti ti-arrow-right"></i></button>')
+        : (readOnly
+            ? '<button class="cta chcta" onclick="chTermsGo(3)">Next \u2014 behaviour agreement <i class="ti ti-arrow-right"></i></button>'
+            : '<button class="cta chcta" onclick="chTermsGo(3)">Next <i class="ti ti-arrow-right"></i></button>'));
   }
 
   /* ---- page 2: the challenge rules ---- */
@@ -5242,7 +5279,7 @@
           '<div id="chBehaveWarn" class="cherr" style="display:none">Please tick the box to carry on.</div>'+
           '<button class="cta chcta" onclick="acceptChTerms()"><i class="ti ti-check"></i> '+
             (_termsThen==='app'?'Agree &amp; go in':'Agree &amp; see the challenges')+'</button>'+
-          '<button class="chmore" onclick="chTermsGo(2)"><i class="ti ti-arrow-left"></i> Back</button>');
+          '<button class="chmore" onclick="chTermsGo('+(hasChRules()?2:1)+')"><i class="ti ti-arrow-left"></i> Back</button>');
   }
 
   function stepRules(){
@@ -5255,7 +5292,7 @@
   function openChallenge(){
     /* Anyone who somehow reaches this without having accepted \u2014 an older session,
        a cleared browser \u2014 still gets the rules first. */
-    if(role==='player' && myPlayerId() && !chTermsAccepted()){ _termsThen='challenge'; _termsOK={rules:false,behave:false}; openChTerms(false,1); return; }
+    if(role==='player' && !chTermsAccepted()){ _termsThen='challenge'; _termsOK={rules:false,behave:false}; openChTerms(false,1); return; }
     showOnly('s-challenge');
     document.getElementById('appTitle').textContent=chName();
     document.getElementById('appSub').textContent='Earn XP for your profile';
