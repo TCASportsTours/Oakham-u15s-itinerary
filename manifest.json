@@ -1,7 +1,7 @@
 {
-  "name": "GCS Oakham 26",
-  "short_name": "GCS Oakham 26",
-  "description": "Schedule, fixtures, squads, packing list and contacts for the GCS England U13s tournament at Oakham School.",
+  "name": "GCS Oakham U15s 26",
+  "short_name": "GCS Oakham U15s",
+  "description": "Schedule, fixtures, squads, packing list and contacts for the GCS England U15s tournament at Oakham School, 11–14 August 2026.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
