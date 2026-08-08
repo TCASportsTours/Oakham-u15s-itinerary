@@ -337,8 +337,8 @@ fill='%23ffffff' fill-opacity='0.045' letter-spacing='1'>GLOBAL CRICKET SERIES  
 <script>
 (function(){
   /* ---- countdown to the first ball: Tuesday 11 August 2026, 14:30 ---- */
-  var START = new Date(2026,7,11,14,30,0);
-  var END   = new Date(2026,7,6,18,30,0);
+  var START = new Date(2026,7,11,14,30,0);   /* Tue 11 Aug, first ball          */
+  var END   = new Date(2026,7,14,18,30,0);   /* Fri 14 Aug, after the awards    */
   function pad(n){ return n<10?('0'+n):String(n); }
   function tick(){
     var now=new Date(), board=document.getElementById('board'), note=document.getElementById('boardnote');
@@ -351,7 +351,11 @@ fill='%23ffffff' fill-opacity='0.045' letter-spacing='1'>GLOBAL CRICKET SERIES  
     }
     if(now>=START){
       board.classList.add('live');
-      var day=Math.floor((now-START)/86400000)+1;
+      /* Calendar days, not 24-hour blocks from a 14:30 start \u2014 otherwise every
+         morning before 14:30 reads a day behind (Friday would show "day 3"). */
+      var _d0=new Date(START.getFullYear(),START.getMonth(),START.getDate());
+      var _dn=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      var day=Math.round((_dn-_d0)/86400000)+1;
       d.textContent=day; h.textContent=pad(now.getHours()); m.textContent=pad(now.getMinutes());
       board.children[0].querySelector('span').textContent='DAY';
       board.children[1].querySelector('span').textContent='HRS';
