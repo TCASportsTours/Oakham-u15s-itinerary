@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09a · registration-guide</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09b · registration-detail</div>
     </section>
 
     <!-- TODAY -->
@@ -1043,7 +1043,7 @@
           <a href="https://apps.apple.com/us/app/global-cricket-series/id6759386148" target="_blank" rel="noopener"><i class="ti ti-brand-apple"></i> App Store</a>
           <a href="https://play.google.com/store/apps/details?id=com.cricheroes.gcs&hl=en_GB" target="_blank" rel="noopener"><i class="ti ti-brand-google-play"></i> Google Play</a>
         </div>
-        <button class="cta" style="width:100%;justify-content:center;box-sizing:border-box;margin-top:12px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)" onclick="openReg()"><i class="ti ti-user-plus"></i> How to register to play</button>
+        <button class="cta" style="width:100%;justify-content:center;box-sizing:border-box;margin-top:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff" onclick="openReg()"><i class="ti ti-user-plus"></i> How to register to play</button>
       </div>
     </section>
 
@@ -2869,18 +2869,30 @@
      a 12-slide landscape PDF, which is a miserable read on a phone, so the steps are
      rebuilt natively here and the PDF is offered as a fallback for the screenshots. */
   var REGSTEPS=[
-    ['Open the GCS app','Install it from the App Store or Google Play first, then tap the icon.'],
-    ['Choose your country','Pick United Kingdom from the dropdown.'],
-    ['Enter your email','Tap Next and it emails you a one-time code.'],
-    ['Enter the code','Check your inbox, type the code in, tap Next.'],
-    ['Open the menu','Three lines, top left of the home screen.'],
-    ['Tap Player Registration','It is in that menu, under My Stats.'],
-    ['Fill in your details','Name and email fill themselves. Add playing role, batting and bowling style, and date of birth.'],
-    ['Pick the tournament','Choose the Oakham U15s tournament from the list.'],
-    ['Pick your team','Your squad, spelled the same as it is in this app.'],
-    ['Add a photo and submit','A profile photo is required. Then scroll down and tap Submit.'],
-    ['Wait for approval','It shows as Pending until we approve it. Nothing else for you to do.']
+    ['Open the Global Cricket Series app',
+     'Install it free from the App Store or Google Play first, then tap the GCS icon to launch it.'],
+    ['Select your country',
+     'Pick United Kingdom from the dropdown to set your regional preferences, then choose Login with Email. Do not tap "Explore as a guest" \u2014 that will not register you.'],
+    ['Enter your email address',
+     'Type your email and tap Next. A one-time password (OTP) is sent to your inbox. Use an address you can open on the phone you are holding.'],
+    ['Enter your OTP',
+     'Check your email, enter the code in the boxes and tap Next. If it does not arrive, check junk and use Resend once the timer runs down.'],
+    ['Access the menu',
+     'Once you are logged in, tap the three lines (menu icon) at the top left of the home screen.'],
+    ['Tap Player Registration',
+     'In that menu it sits under My Stats. Tap it to open the registration form.'],
+    ['Fill in your details',
+     'Your name and email are already filled in. Add Playing Role, Batting Style (LHB or RHB), Bowling Style and Date of Birth. Note the date format is YYYY/MM/DD. Anything marked * has to be completed.'],
+    ['Select the tournament',
+     'Open the Tournament dropdown and choose UK Cricket Festival u15s.'],
+    ['Select your team',
+     'The Team list only fills in once the tournament is chosen. Pick your squad \u2014 spelled the same as it is in this app.'],
+    ['Add a profile photo and submit',
+     'A profile photo is required. Tap Choose File, add one, then scroll to the bottom and tap Submit.'],
+    ['Registration pending',
+     'It now shows as Pending under My Registrations, with your registration ID and player ID. Wait for admin approval \u2014 once approved you are added to the tournament and your team. Nothing else for you to do.']
   ];
+
   function openReg(){
     showOnly('s-detail');
     document.getElementById('appTitle').textContent='Register to play';
@@ -2909,7 +2921,7 @@
 
   function regLink(){
     return '<button class="cta" style="width:100%;justify-content:center;box-sizing:border-box;margin-top:10px;'+
-      'background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)" onclick="openReg()">'+
+      'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff" onclick="openReg()">'+
       '<i class="ti ti-user-plus"></i> How to register to play</button>';
   }
 
