@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑05c · gate-all-players</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09a · registration-guide</div>
     </section>
 
     <!-- TODAY -->
@@ -1043,6 +1043,7 @@
           <a href="https://apps.apple.com/us/app/global-cricket-series/id6759386148" target="_blank" rel="noopener"><i class="ti ti-brand-apple"></i> App Store</a>
           <a href="https://play.google.com/store/apps/details?id=com.cricheroes.gcs&hl=en_GB" target="_blank" rel="noopener"><i class="ti ti-brand-google-play"></i> Google Play</a>
         </div>
+        <button class="cta" style="width:100%;justify-content:center;box-sizing:border-box;margin-top:12px;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)" onclick="openReg()"><i class="ti ti-user-plus"></i> How to register to play</button>
       </div>
     </section>
 
@@ -2863,6 +2864,55 @@
     var hay=((g&&g.tile)||'')+' '+(((g&&g.rows)||[]).map(function(r){ return (r.heading||'')+' '+(r.text||''); }).join(' '));
     return /live scor|live-scor|livestream|live stream|streamed|streaming|scorecard/i.test(hay);
   }
+  /* Registering on the GCS/CricHeroes app is what puts a player on the scorecards \u2014
+     without it their runs and wickets land against a blank name. The official guide is
+     a 12-slide landscape PDF, which is a miserable read on a phone, so the steps are
+     rebuilt natively here and the PDF is offered as a fallback for the screenshots. */
+  var REGSTEPS=[
+    ['Open the GCS app','Install it from the App Store or Google Play first, then tap the icon.'],
+    ['Choose your country','Pick United Kingdom from the dropdown.'],
+    ['Enter your email','Tap Next and it emails you a one-time code.'],
+    ['Enter the code','Check your inbox, type the code in, tap Next.'],
+    ['Open the menu','Three lines, top left of the home screen.'],
+    ['Tap Player Registration','It is in that menu, under My Stats.'],
+    ['Fill in your details','Name and email fill themselves. Add playing role, batting and bowling style, and date of birth.'],
+    ['Pick the tournament','Choose the Oakham U15s tournament from the list.'],
+    ['Pick your team','Your squad, spelled the same as it is in this app.'],
+    ['Add a photo and submit','A profile photo is required. Then scroll down and tap Submit.'],
+    ['Wait for approval','It shows as Pending until we approve it. Nothing else for you to do.']
+  ];
+  function openReg(){
+    showOnly('s-detail');
+    document.getElementById('appTitle').textContent='Register to play';
+    document.getElementById('appSub').textContent='Global Cricket Series app';
+    var h='<div class="chintro"><b>Do this before Tuesday.</b><p>Every game is live scored on the '+
+      'Global Cricket Series app. If you are not registered on it, your runs and wickets have nowhere '+
+      'to go \u2014 you will not appear on a scorecard, a leaderboard or the Orange and Purple Cap races.</p></div>'+
+      '<div class="eyebrow" style="margin-top:14px">Eleven steps, about three minutes</div>';
+    REGSTEPS.forEach(function(st,i){
+      h+='<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--surface-line)">'+
+         '<span style="flex:none;width:26px;height:26px;border-radius:9px;background:rgba(255,124,26,.16);'+
+           'color:var(--orange);font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span>'+
+         '<div style="flex:1;min-width:0"><b style="display:block;color:#fff;font-size:14.5px;margin-bottom:2px">'+esc(st[0])+'</b>'+
+         '<span style="color:var(--muted);font-size:13.5px;line-height:1.5">'+esc(st[1])+'</span></div></div>';
+    });
+    h+='<button class="cta chcta" style="margin-top:16px" onclick="openGCS()"><i class="ti ti-download"></i> Get the GCS app</button>'+
+       '<div class="stores" style="margin-top:10px">'+
+         '<a href="https://apps.apple.com/us/app/global-cricket-series/id6759386148" target="_blank" rel="noopener"><i class="ti ti-brand-apple"></i> App Store</a>'+
+         '<a href="https://play.google.com/store/apps/details?id=com.cricheroes.gcs&hl=en_GB" target="_blank" rel="noopener"><i class="ti ti-brand-google-play"></i> Google Play</a>'+
+       '</div>'+
+       '<a class="chterms-link" href="gcs_player_registration_guide.pdf" target="_blank" rel="noopener" style="margin-top:14px;text-decoration:none">'+
+         '<i class="ti ti-file-text"></i><div><b>The full guide with screenshots</b><span>PDF, opens in a new tab</span></div>'+
+         '<i class="ti ti-chevron-right"></i></a>';
+    document.getElementById('detailBody').innerHTML=h;
+  }
+
+  function regLink(){
+    return '<button class="cta" style="width:100%;justify-content:center;box-sizing:border-box;margin-top:10px;'+
+      'background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)" onclick="openReg()">'+
+      '<i class="ti ti-user-plus"></i> How to register to play</button>';
+  }
+
   function gcsAppBox(){
     return '<div class="travelbox" style="margin-top:10px"><div class="th"><i class="ti ti-device-mobile"></i> Global Cricket Series app</div>'+
       '<div style="font-size:13.5px;line-height:1.6;color:var(--muted);padding:2px 2px 12px">'+
@@ -2871,7 +2921,7 @@
       '<div class="stores" style="margin-top:10px">'+
         '<a href="https://apps.apple.com/us/app/global-cricket-series/id6759386148" target="_blank" rel="noopener"><i class="ti ti-brand-apple"></i> App Store</a>'+
         '<a href="https://play.google.com/store/apps/details?id=com.cricheroes.gcs&hl=en_GB" target="_blank" rel="noopener"><i class="ti ti-brand-google-play"></i> Google Play</a>'+
-      '</div></div>';
+      '</div>'+ regLink() +'</div>';
   }
   function isTravelTile(name){ return /(before you travel|passport|visa|travel doc|documentation|getting there)/i.test(name||''); }
   function isWeatherTile(name){ return /forecast/i.test(name||'') || String(name||'').trim().toLowerCase()==='weather'; }
