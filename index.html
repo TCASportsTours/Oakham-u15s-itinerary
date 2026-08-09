@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09b · registration-detail</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09c · registration-copy</div>
     </section>
 
     <!-- TODAY -->
@@ -2867,7 +2867,7 @@
   /* Registering on the GCS/CricHeroes app is what puts a player on the scorecards \u2014
      without it their runs and wickets land against a blank name. The official guide is
      a 12-slide landscape PDF, which is a miserable read on a phone, so the steps are
-     rebuilt natively here and the PDF is offered as a fallback for the screenshots. */
+     rebuilt natively here instead. */
   var REGSTEPS=[
     ['Open the Global Cricket Series app',
      'Install it free from the App Store or Google Play first, then tap the GCS icon to launch it.'],
@@ -2898,8 +2898,13 @@
     document.getElementById('appTitle').textContent='Register to play';
     document.getElementById('appSub').textContent='Global Cricket Series app';
     var h='<div class="chintro"><b>Do this before Tuesday.</b><p>Every game is live scored on the '+
-      'Global Cricket Series app. If you are not registered on it, your runs and wickets have nowhere '+
-      'to go \u2014 you will not appear on a scorecard, a leaderboard or the Orange and Purple Cap races.</p></div>'+
+      'Global Cricket Series app, and you get scored whether you register or not. The difference is '+
+      'whose record it is.</p>'+
+      '<p>Without registering, your runs and wickets go onto a generic account you cannot log into. '+
+      'You will not be able to open your own stats, and none of it follows you \u2014 play another GCS '+
+      'tournament and you start again from nothing.</p>'+
+      '<p>Register and it is your account: your batting and bowling numbers, your wagon wheels, and '+
+      'every GCS tournament you play building up in one place.</p></div>'+
       '<div class="eyebrow" style="margin-top:14px">Eleven steps, about three minutes</div>';
     REGSTEPS.forEach(function(st,i){
       h+='<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--surface-line)">'+
@@ -2912,10 +2917,7 @@
        '<div class="stores" style="margin-top:10px">'+
          '<a href="https://apps.apple.com/us/app/global-cricket-series/id6759386148" target="_blank" rel="noopener"><i class="ti ti-brand-apple"></i> App Store</a>'+
          '<a href="https://play.google.com/store/apps/details?id=com.cricheroes.gcs&hl=en_GB" target="_blank" rel="noopener"><i class="ti ti-brand-google-play"></i> Google Play</a>'+
-       '</div>'+
-       '<a class="chterms-link" href="gcs_player_registration_guide.pdf" target="_blank" rel="noopener" style="margin-top:14px;text-decoration:none">'+
-         '<i class="ti ti-file-text"></i><div><b>The full guide with screenshots</b><span>PDF, opens in a new tab</span></div>'+
-         '<i class="ti ti-chevron-right"></i></a>';
+       '</div>';
     document.getElementById('detailBody').innerHTML=h;
   }
 
