@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09c · registration-copy</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09d · vote-admin-only</div>
     </section>
 
     <!-- TODAY -->
@@ -2701,7 +2701,9 @@
     help.push(tile('acc-orange','openHowTo()','ti-help-circle','How to use'));
     if(isStaff) help.push(tile('acc-orange','openRoster()','ti-clipboard-list','Squad list'));
     if(isAdmin) help.push(tile('acc-purple','openScoring()','ti-list-numbers','Scoring app guide'));
-    if(isStaff) help.push(tile('acc-purple','openVoteResults()','ti-trophy','Players&rsquo; Player',_voteTileSub()));
+    /* Vote results are GCS admin only. A coach seeing who their own squad voted for
+       ahead of the awards is exactly the situation the vote is meant to avoid. */
+    if(isAdmin) help.push(tile('acc-purple','openVoteResults()','ti-trophy','Players&rsquo; Player',_voteTileSub()));
     if(isStaff && MEALS && MEALS.length) help.push(tile('acc-teal','openMealOrders()','ti-tools-kitchen-2','Meal pre-orders'));
     if(isStaff) help.push(tile('acc-orange','openSendAlert()','ti-send','Send alert'));
     help.push(tile('acc-teal','openFeedback()','ti-message-2-heart','Send feedback'));
@@ -3435,7 +3437,12 @@
     }).catch(function(){ setVoteStatus('offline'); _voteTimer=setTimeout(pushVote,5000); });
   }
   function openVoteResults(){
-    showOnly('s-detail'); document.getElementById('appTitle').textContent="Players\u2019 Player"; document.getElementById('appSub').textContent='Results — staff only';
+    showOnly('s-detail'); document.getElementById('appTitle').textContent="Players\u2019 Player"; document.getElementById('appSub').textContent='Results \u2014 GCS admin only';
+    if(!isAdmin){
+      document.getElementById('detailBody').innerHTML='<div class="readonly" style="justify-content:flex-start;margin-top:14px">'+
+        '<i class="ti ti-lock"></i> Vote results are visible to GCS admin only.</div>';
+      return;
+    }
     document.getElementById('detailBody').innerHTML='<div class="readonly" style="justify-content:flex-start;margin-top:14px"><i class="ti ti-loader-2"></i> Loading votes…</div>';
     getJSON('?type=votes').then(function(r){return r.ok?r.json():{};}).then(renderVoteResults)
       .catch(function(){ document.getElementById('detailBody').innerHTML='<div class="readonly" style="justify-content:flex-start"><i class="ti ti-wifi-off"></i> Could not load votes — check your connection.</div>'; });
