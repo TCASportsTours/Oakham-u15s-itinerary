@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09d · vote-admin-only</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09e · auto-challenge-alert</div>
     </section>
 
     <!-- TODAY -->
@@ -4890,11 +4890,13 @@
     if(!mine.length){ host.innerHTML=head+'<div class="readonly" style="justify-content:flex-start"><i class="ti ti-bell-off"></i> No alerts yet \u2014 messages from tour staff will appear here.</div>'; return; }
     host.innerHTML=head+mine.map(function(a){
       var tap=(a.kind==='lineup'&&a.evKey);
-      return '<div class="card"'+(tap?' onclick="openLineupFromAlert('+JSON.stringify(a.evKey).replace(/"/g,'&quot;')+')" style="cursor:pointer"':'')+'>'+
+      var chTap=(a.kind==='challenge');
+      return '<div class="card"'+(tap?' onclick="openLineupFromAlert('+JSON.stringify(a.evKey).replace(/"/g,'&quot;')+')" style="cursor:pointer"':(chTap?' onclick="openChallenge()" style="cursor:pointer"':''))+'>'+
         '<div class="when">'+esc(alertAudLabel(a))+' \u00b7 '+esc(ago(a.ts))+'</div>'+
         '<p style="margin:2px 0 0">'+esc(a.text||'')+'</p>'+
         (a.photo?'<img id="apicf-'+esc(a.photo)+'" alt="Alert photo" style="width:100%;border-radius:12px;margin:10px 0 0;display:none;max-height:320px;object-fit:cover">':'')+
         (tap?'<div style="margin-top:8px;color:#9a9ad6;font-weight:600;font-size:13px"><i class="ti ti-list-numbers"></i> View batting order \u203a</div>':'')+
+        (chTap?'<div style="margin-top:8px;color:#ff9d52;font-weight:600;font-size:13px"><i class="ti ti-bolt"></i> Open the challenge \u203a</div>':'')+
         alertShareBtns(a)+
         '</div>';
     }).join('');
@@ -4911,7 +4913,8 @@
     document.getElementById('alertMsg').textContent = curAlert.text||'';
     document.getElementById('alertTime').textContent = ago(curAlert.ts);
     var ob=document.getElementById('alertOpenBtn');
-    if(ob) ob.style.display=(curAlert.kind==='lineup'&&curAlert.evKey)?'':'none';
+    if(ob) ob.style.display=((curAlert.kind==='lineup'&&curAlert.evKey)||curAlert.kind==='challenge')?'':'none';
+    if(ob) ob.innerHTML=(curAlert.kind==='challenge')?'<i class="ti ti-bolt"></i> Open the challenge':'<i class="ti ti-list-numbers"></i> View batting order';
     var lb=document.getElementById('alertLinkBtn');
     if(lb) lb.style.display=curAlert.link?'':'none';
     var pic=document.getElementById('alertPic');
@@ -4924,6 +4927,7 @@
     var a=curAlert; if(a) ackId(a.id);
     document.getElementById('alertModal').style.display='none'; curAlert=null; renderAlertsFeed();
     if(a&&a.kind==='lineup'&&a.evKey) openLineupFromAlert(a.evKey);
+    else if(a&&a.kind==='challenge') openChallenge();
   }
   function ackAlert(){ if(curAlert)ackId(curAlert.id); document.getElementById('alertModal').style.display='none'; curAlert=null; renderAlertsFeed(); setTimeout(showNextAlert,150); }
   function maybeAnnounceVoteOpen(list){
@@ -4938,9 +4942,44 @@
         .then(function(){ ALERTS=next; renderAlertsFeed(); showNextAlert(); }).catch(function(){});
     }catch(e){}
   }
+  /* Announces the day's challenge the moment it opens, with no one having to send it.
+
+     Same trick as the vote announcement above: the id is derived from the tour day and
+     the challenge title, so whichever phone notices first writes the alert and every
+     other phone sees the id already exists and leaves it alone. No duplicates however
+     many people have the app open.
+
+     Supporters neither trigger it nor receive it \u2014 the challenge is for players. */
+  function maybeAnnounceChallenge(list){
+    try{
+      if(isSupporter()) return;
+      if(!CHALLENGES || !CHALLENGES.length) return;
+      if(tourPhase()==='after') return;
+
+      var c=null;
+      dailyChallenges().forEach(function(x){
+        if(parseInt(x.day,10)===DEMO_TODAY && chOpen(x)) c=x;
+      });
+      if(!c) return;
+
+      var id='chopen-d'+DEMO_TODAY+'-'+chSlug(c.title||'');
+      if((list||[]).some(function(a){return a&&a.id===id;})) return;
+
+      var xp=chXP(c), bonus=chEarlyXP(c);
+      var txt=chName()+' \u2014 today\u2019s challenge is live: \u201c'+(c.title||'')+'\u201d. '+xp+' XP';
+      if(bonus) txt+=', plus '+bonus+' bonus XP if you get it done within the hour';
+      txt+='.';
+
+      var a={id:id, team:'all', kind:'challenge', text:txt, ts:Date.now()};
+      var next=[a].concat(list||[]).slice(0,20);
+      apiPost('/.netlify/functions/tour?type=alerts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)})
+        .then(function(){ ALERTS=next; renderAlertsFeed(); showNextAlert(); }).catch(function(){});
+    }catch(e){}
+  }
+
   function fetchAlerts(){
     getJSON('?type=alerts').then(function(r){return r.ok?r.json():[];})
-      .then(function(a){ if(Array.isArray(a))ALERTS=a; maybeAnnounceVoteOpen(ALERTS); renderAlertsFeed(); showNextAlert(); }).catch(function(){});
+      .then(function(a){ if(Array.isArray(a))ALERTS=a; maybeAnnounceVoteOpen(ALERTS); maybeAnnounceChallenge(ALERTS); renderAlertsFeed(); showNextAlert(); }).catch(function(){});
   }
   function startAlerts(){
     fetchAlerts();
