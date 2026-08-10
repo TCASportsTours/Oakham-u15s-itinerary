@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑09e · auto-challenge-alert</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑10a · admin-signout</div>
     </section>
 
     <!-- TODAY -->
@@ -2711,6 +2711,7 @@
        never see this tile and its presence made the preview inaccurate. The banner
        across the top is the way back out. */
     if(isAdmin) help.push(tile('acc-purple','openPreview()','ti-eye','View as\u2026'));
+    if(isAdmin) help.push(tile('acc-red','openKick()','ti-logout','Sign a player out'));
     help.push(tile('acc-orange pulse','openSocials()','ti-brand-instagram','Follow the tour'));
     if(!isStandalone() && a2hsPlatform()!=='other') help.push(tile('acc-purple','openA2HS()','ti-device-mobile-down','Add to home screen'));
     if(isAdmin) help.push(tile('acc-teal','openConsents()','ti-checkbox','Rules accepted'));
@@ -4605,7 +4606,9 @@
   function savePlayer(team,name){ try{localStorage.setItem(playerKey(),JSON.stringify({team:team,name:name}));}catch(e){} }
   function clearPlayer(){ try{localStorage.removeItem(playerKey());}catch(e){} }
   function sessionKey(){ return 'gcs_session_'+(SETTINGS.tourName||'tour'); }
-  function saveSession(){ try{ localStorage.setItem(sessionKey(), JSON.stringify({role:role,isStaff:isStaff,isAdmin:isAdmin,team:currentSquad,name:currentPlayer,officialKind:officialKind,officialName:officialName})); }catch(e){} }
+  function saveSession(){ try{ var prev=loadSession()||{}; localStorage.setItem(sessionKey(), JSON.stringify({role:role,isStaff:isStaff,isAdmin:isAdmin,team:currentSquad,name:currentPlayer,officialKind:officialKind,officialName:officialName,at:prev.at||Date.now()})); }catch(e){} }
+  function sessionStartedAt(){ var s=loadSession(); return (s&&s.at)||0; }
+  function stampSession(){ try{ var s=loadSession()||{}; s.at=Date.now(); localStorage.setItem(sessionKey(), JSON.stringify(s)); }catch(e){} }
   function loadSession(){ try{ return JSON.parse(localStorage.getItem(sessionKey())||'null'); }catch(e){ return null; } }
   function clearSession(){ try{ localStorage.removeItem(sessionKey()); }catch(e){} }
   var _pickCtx={team:'',names:[],staff:false};
@@ -4647,6 +4650,7 @@
     currentPlayer=name;
     if(c.staff){ staffPending=false; } else { savePlayer(c.team,name); }
     signIn(c.team, c.staff);
+    stampSession();   // a kick only bites on sessions that started before it
     /* If they accepted anonymously and have now identified themselves, put a proper
        named record on the server \u2014 otherwise the acceptance exists only on the phone. */
     if(!c.staff && name && chTermsAccepted()){
@@ -4950,6 +4954,87 @@
      many people have the app open.
 
      Supporters neither trigger it nor receive it \u2014 the challenge is for players. */
+  /* ==========================================================================
+     SIGN A PLAYER OUT
+     --------------------------------------------------------------------------
+     Players sign in by picking a name off a list, so picking the wrong one is
+     easy and, once done, sticks on that phone. This lets GCS admin push them
+     back to the sign-in screen.
+
+     There is no server-side session to end \u2014 sign-in is entirely local. So a
+     "kick" is a timestamp stored against the player id in the `kicks` slot. Every
+     phone already polls alerts each minute; it reads kicks at the same time and
+     signs itself out if its own id was kicked AFTER its session started.
+
+     Because it is "after", the same player can immediately sign back in \u2014 which
+     is the point. It boots them to the picker, it does not lock them out.
+     ========================================================================== */
+  var KICKS={};
+
+  function fetchKicks(){
+    return getJSON('?type=kicks').then(function(r){return r.ok?r.json():{};})
+      .then(function(k){ if(k&&typeof k==='object'&&!Array.isArray(k)) KICKS=k; return KICKS; })
+      .catch(function(){ return KICKS; });
+  }
+
+  function checkKicked(){
+    try{
+      if(isAdmin) return;                       // never boot the person doing the booting
+      var id=myPlayerId(); if(!id) return;
+      var t=KICKS[id]; if(!t) return;
+      var started=sessionStartedAt();
+      if(started && t<=started) return;         // kicked before this sign-in — already served
+      signOut();
+      setTimeout(function(){ toast('Signed out by tournament staff \u2014 please pick the right name'); },300);
+    }catch(e){}
+  }
+
+  function openKick(){
+    if(!isAdmin) return;
+    showOnly('s-detail');
+    document.getElementById('appTitle').textContent='Sign a player out';
+    document.getElementById('appSub').textContent='GCS admin only';
+    document.getElementById('detailBody').innerHTML='<div class="readonly" style="justify-content:flex-start;margin-top:14px"><i class="ti ti-loader-2"></i> Loading\u2026</div>';
+    fetchKicks().then(renderKick);
+  }
+
+  function renderKick(){
+    var h='<div class="chintro"><b>Wrong name on their phone?</b><p>Signing them out pushes that '+
+      'phone back to the sign-in screen so they can pick again. It does not lock them out, and it '+
+      'does not delete anything they have submitted.</p></div>';
+    var teams=Object.keys(ROSTER||{}).sort();
+    if(!teams.length){
+      h+='<div class="readonly" style="justify-content:flex-start;margin-top:12px"><i class="ti ti-info-circle"></i> No squads published yet.</div>';
+      document.getElementById('detailBody').innerHTML=h; return;
+    }
+    teams.forEach(function(t){
+      var list=(ROSTER[t]||[]).filter(function(p){return p&&p.name;});
+      if(!list.length) return;
+      h+='<div class="eyebrow" style="margin:16px 0 4px">'+esc(t)+'</div>';
+      list.forEach(function(p){
+        var id=chSlug(t)+'__'+chSlug(p.name);
+        var when=KICKS[id]?('Signed out '+ago(KICKS[id])):'';
+        h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--surface-line)">'+
+             '<div style="flex:1;min-width:0"><b style="color:#fff;font-size:14.5px">'+esc(p.name)+'</b>'+
+             (when?'<span style="display:block;color:#ff9d52;font-size:12px">'+esc(when)+'</span>':'')+'</div>'+
+             '<button class="cibtn" style="margin:0;flex:none" onclick="kickPlayer('+JSON.stringify(t).replace(/"/g,'&quot;')+','+JSON.stringify(p.name).replace(/"/g,'&quot;')+')">'+
+             '<i class="ti ti-logout"></i> Sign out</button></div>';
+      });
+    });
+    document.getElementById('detailBody').innerHTML=h;
+  }
+
+  function kickPlayer(team,name){
+    if(!isAdmin) return;
+    if(!confirm('Sign '+name+' out of '+team+'?\n\nTheir phone returns to the sign-in screen within a minute.')) return;
+    var id=chSlug(team)+'__'+chSlug(name);
+    var next={}; Object.keys(KICKS||{}).forEach(function(k){ next[k]=KICKS[k]; });
+    next[id]=Date.now();
+    apiPost('/.netlify/functions/tour?type=kicks',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)})
+      .then(function(){ KICKS=next; toast(name+' will be signed out'); renderKick(); })
+      .catch(function(){ toast('Could not sign them out \u2014 check your connection'); });
+  }
+
   function maybeAnnounceChallenge(list){
     try{
       if(isSupporter()) return;
@@ -4980,6 +5065,7 @@
   function fetchAlerts(){
     getJSON('?type=alerts').then(function(r){return r.ok?r.json():[];})
       .then(function(a){ if(Array.isArray(a))ALERTS=a; maybeAnnounceVoteOpen(ALERTS); maybeAnnounceChallenge(ALERTS); renderAlertsFeed(); showNextAlert(); }).catch(function(){});
+    fetchKicks().then(checkKicked);
   }
   function startAlerts(){
     fetchAlerts();
