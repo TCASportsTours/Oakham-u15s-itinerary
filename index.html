@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑10a · admin-signout</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑10b · signout-signedin</div>
     </section>
 
     <!-- TODAY -->
@@ -4989,14 +4989,36 @@
     }catch(e){}
   }
 
+  /* Who has actually signed in. The stats slot already counts logins, keyed
+     "Team \u00b7 Player Name" (see track() above), so there is no new tracking to add \u2014
+     it just has to be read back. */
+  var LOGINS={};
+  function fetchLogins(){
+    return getJSON('?type=stats').then(function(r){return r.ok?r.json():{};})
+      .then(function(d){
+        var out={};
+        try{
+          var pl=(d&&d.logins&&d.logins.players)||{};
+          Object.keys(pl).forEach(function(k){ out[k]=pl[k]; });
+        }catch(e){}
+        LOGINS=out; return out;
+      }).catch(function(){ return LOGINS; });
+  }
+  function loginCount(team,name){
+    var n=LOGINS[team+' \u00b7 '+name];
+    return (typeof n==='number')?n:0;
+  }
+
   function openKick(){
     if(!isAdmin) return;
     showOnly('s-detail');
     document.getElementById('appTitle').textContent='Sign a player out';
     document.getElementById('appSub').textContent='GCS admin only';
     document.getElementById('detailBody').innerHTML='<div class="readonly" style="justify-content:flex-start;margin-top:14px"><i class="ti ti-loader-2"></i> Loading\u2026</div>';
-    fetchKicks().then(renderKick);
+    Promise.all([fetchKicks(), fetchLogins()]).then(function(){ renderKick(); });
   }
+  var _kickAll=false;
+  function toggleKickAll(){ _kickAll=!_kickAll; renderKick(); }
 
   function renderKick(){
     var h='<div class="chintro"><b>Wrong name on their phone?</b><p>Signing them out pushes that '+
@@ -5007,20 +5029,44 @@
       h+='<div class="readonly" style="justify-content:flex-start;margin-top:12px"><i class="ti ti-info-circle"></i> No squads published yet.</div>';
       document.getElementById('detailBody').innerHTML=h; return;
     }
+    var totalIn=0, totalOut=0;
+    var body='';
     teams.forEach(function(t){
       var list=(ROSTER[t]||[]).filter(function(p){return p&&p.name;});
       if(!list.length) return;
-      h+='<div class="eyebrow" style="margin:16px 0 4px">'+esc(t)+'</div>';
-      list.forEach(function(p){
+      // signed in first \u2014 those are the only ones there is ever anything to do about
+      var inList=[], outList=[];
+      list.forEach(function(p){ (loginCount(t,p.name)>0?inList:outList).push(p); });
+      totalIn+=inList.length; totalOut+=outList.length;
+      var show=inList.concat(_kickAll?outList:[]);
+      if(!show.length) return;
+
+      body+='<div class="eyebrow" style="margin:16px 0 4px">'+esc(t)+
+            ' <span style="color:var(--muted);font-weight:600">\u00b7 '+inList.length+' of '+list.length+' signed in</span></div>';
+      show.forEach(function(p){
+        var on=loginCount(t,p.name)>0;
         var id=chSlug(t)+'__'+chSlug(p.name);
         var when=KICKS[id]?('Signed out '+ago(KICKS[id])):'';
-        h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--surface-line)">'+
+        body+='<div style="display:flex;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--surface-line)'+(on?'':';opacity:.42')+'">'+
              '<div style="flex:1;min-width:0"><b style="color:#fff;font-size:14.5px">'+esc(p.name)+'</b>'+
-             (when?'<span style="display:block;color:#ff9d52;font-size:12px">'+esc(when)+'</span>':'')+'</div>'+
-             '<button class="cibtn" style="margin:0;flex:none" onclick="kickPlayer('+JSON.stringify(t).replace(/"/g,'&quot;')+','+JSON.stringify(p.name).replace(/"/g,'&quot;')+')">'+
-             '<i class="ti ti-logout"></i> Sign out</button></div>';
+             (when?'<span style="display:block;color:#ff9d52;font-size:12px">'+esc(when)+'</span>'
+                  :(on?'':'<span style="display:block;color:var(--muted);font-size:12px">Not signed in</span>'))+'</div>'+
+             (on
+               ? '<button class="cibtn" style="margin:0;flex:none" onclick="kickPlayer('+JSON.stringify(t).replace(/"/g,'&quot;')+','+JSON.stringify(p.name).replace(/"/g,'&quot;')+')">'+
+                 '<i class="ti ti-logout"></i> Sign out</button>'
+               : '<span style="flex:none;color:var(--muted);font-size:12px"><i class="ti ti-minus"></i></span>')+
+             '</div>';
       });
     });
+
+    if(!totalIn && !_kickAll){
+      body='<div class="readonly" style="justify-content:flex-start;margin-top:12px"><i class="ti ti-info-circle"></i> Nobody has signed in yet.</div>';
+    }
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px">'+
+         '<span class="eyebrow" style="margin:0">'+totalIn+' signed in \u00b7 '+totalOut+' not yet</span>'+
+         '<button class="cibtn" style="margin:0" onclick="toggleKickAll()">'+
+         (_kickAll?'<i class="ti ti-eye-off"></i> Hide the rest':'<i class="ti ti-eye"></i> Show everyone')+'</button></div>';
+    h+=body;
     document.getElementById('detailBody').innerHTML=h;
   }
 
@@ -5031,7 +5077,7 @@
     var next={}; Object.keys(KICKS||{}).forEach(function(k){ next[k]=KICKS[k]; });
     next[id]=Date.now();
     apiPost('/.netlify/functions/tour?type=kicks',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(next)})
-      .then(function(){ KICKS=next; toast(name+' will be signed out'); renderKick(); })
+      .then(function(){ KICKS=next; toast(name+' will be signed out'); fetchLogins().then(renderKick); })
       .catch(function(){ toast('Could not sign them out \u2014 check your connection'); });
   }
 
