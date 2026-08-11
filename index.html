@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑10b · signout-signedin</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑11b · banner-top</div>
     </section>
 
     <!-- TODAY -->
@@ -1591,13 +1591,28 @@
     var g=GROUPS&&GROUPS[sq];
     return !!(g&&g.indexOf&&g.indexOf(currentSquad)>=0);
   }
+  /* Tobago 2027 recruitment banner, first thing on the itinerary. WebP first at 69KB
+     with the PNG as fallback, fetched at high priority since it is above the fold, and
+     a fixed 3:1 aspect ratio so the fixtures underneath do not jump as it loads. */
+  var TOBAGO_EOI='https://globalcricketseries.com/tobago-trophy-16-and-under-2027/players-eoi/?ref=oakham';
+  function promoBanner(){
+    return '<a href="'+TOBAGO_EOI+'" target="_blank" rel="noopener" '+
+      'style="display:block;margin:2px 0 12px;border-radius:14px;overflow:hidden;'+
+      'border:1px solid var(--surface-line);line-height:0;-webkit-tap-highlight-color:transparent">'+
+      '<picture>'+
+        '<source srcset="tobago2027_banner.webp" type="image/webp">'+
+        '<img src="tobago2027_banner.png" alt="Global Cricket Series Tobago, 20 to 30 July 2027 \u2014 tap to express your interest" '+
+          'fetchpriority="high" style="width:100%;height:auto;display:block;aspect-ratio:3/1">'+
+      '</picture></a>';
+  }
+
   function renderToday(){
     /* The challenge card sits on the itinerary as well as the Tour hub. This is the
        screen everyone actually opens, so a daily challenge nobody sees is a daily
        challenge nobody does. Set before the early returns so it survives the
        countdown and out-of-tour views too. */
     var tc=document.getElementById('todayChallenge');
-    if(tc) tc.innerHTML=a2hsNudge()+formatBarHTML(10)+voteBarHTML(10)+challengeMoreCard(10);
+    if(tc) tc.innerHTML=a2hsNudge()+promoBanner()+formatBarHTML(10)+voteBarHTML(10)+challengeMoreCard(10);
     EVENTS.sort(function(a,b){ return (a.day-b.day) || (tmin(a.time)-tmin(b.time)); });
     EVENTS.forEach(function(e,i){e._i=i;});
     var staff=false;
