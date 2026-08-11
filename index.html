@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑11d · banner-filenames</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑11e · door-codes</div>
     </section>
 
     <!-- TODAY -->
@@ -2696,10 +2696,28 @@
       (sub?'<span style="display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px">'+sub+'</span>':'')+
       '</div></div>';
   }
+  /* Audience column on the More content tab.
+       blank / all  \u2014 everyone
+       players      \u2014 players and staff, NOT supporters
+       staff        \u2014 tournament and team staff only
+       admin        \u2014 GCS admin only
+     Door codes are the reason this exists: a boarding house code has no business
+     being on a visiting supporter's phone. */
+  function audienceOK(a){
+    a=String(a||'').toLowerCase().trim();
+    if(!a || a==='all' || a==='everyone') return true;
+    if(a==='admin') return !!isAdmin;
+    if(a==='staff') return !!(isStaff || isAdmin);
+    if(a==='players'||a==='player') return !isSupporter();
+    if(a==='supporters'||a==='supporter') return isSupporter();
+    return true;
+  }
+
   function renderMore(){
     var hostEl=document.getElementById('moreDynamic'); if(!hostEl)return;
     var groups=[], idx={};
-    (MORECONTENT||[]).forEach(function(r){ var t=moreTileMerge(r.tile||'Info');
+    (MORECONTENT||[]).filter(function(r){ return audienceOK(r&&r.audience); })
+      .forEach(function(r){ var t=moreTileMerge(r.tile||'Info');
       if(!(t in idx)){ idx[t]=groups.length; groups.push({tile:t,icon:r.icon,highlight:false,rows:[],group:(r.group||'')}); }
       var g=groups[idx[t]]; g.rows.push(r); if(r.highlight)g.highlight=true; if(!g.icon&&r.icon)g.icon=r.icon;
       if(!g.group && r.group) g.group=r.group; });
