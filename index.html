@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑12b · over-rate-fix</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑13a · sliding-early-bonus</div>
     </section>
 
     <!-- TODAY -->
@@ -5134,7 +5134,7 @@
 
       var xp=chXP(c), bonus=chEarlyXP(c);
       var txt=chName()+' \u2014 today\u2019s challenge is live: \u201c'+(c.title||'')+'\u201d. '+xp+' XP';
-      if(bonus) txt+=', plus '+bonus+' bonus XP if you get it done within the hour';
+      if(bonus) txt+=', plus up to '+bonus+' bonus XP \u2014 the sooner you post, the more of it you keep';
       txt+='.';
 
       var a={id:id, team:'all', kind:'challenge', text:txt, ts:Date.now()};
@@ -5273,10 +5273,24 @@
   }
   function chXP(c){ var n=parseInt(c&&c.xp,10); return isNaN(n)?25:n; }
   function chOpensAt(c){ return (c&&c.opens)?c.opens:'09:00'; }
+  /* The headline bonus \u2014 what you get for posting the moment it opens. */
   function chEarlyXP(c){ var n=parseInt(c&&c.earlyXp,10); return isNaN(n)?10:n; }
-  /* The early-bird window: the first hour after the challenge opens. Submit inside it
-     and the bonus is added on top of the base XP. */
-  function chEarlyEndsMin(c){ return tmin(chOpensAt(c))+60; }
+
+  /* Sliding early bonus. It used to be a flat amount inside the first hour, which meant
+     there was no reason to be quick once you were in that hour, and no reason at all
+     once you were out of it. Now it decays steadily from the full amount at the moment
+     the challenge opens down to 1 XP as it closes \u2014 so the earlier you post, the more
+     you get, right through the day. */
+  function chEarlyEndsMin(c){ return (c&&c.closes)?tmin(c.closes):(tmin(chOpensAt(c))+60); }
+  function chEarlyXPNow(c){
+    if(!c || isTourWide(c) || isPreTour(c)) return 0;
+    var max=chEarlyXP(c); if(!max) return 0;
+    var o=tmin(chOpensAt(c)), cl=chEarlyEndsMin(c), n=nowMin();
+    if(cl<=o) return max;
+    if(n<=o) return max;
+    if(n>=cl) return 0;
+    return Math.max(1, Math.ceil(max*(cl-n)/(cl-o)));
+  }
   function chInEarly(c){
     if(!c || isTourWide(c) || isPreTour(c) || !chEarlyXP(c)) return false;
     if(parseInt(c.day,10)!==DEMO_TODAY) return false;
@@ -5681,14 +5695,14 @@
            '</div>'+
            (chDesc(c)?'<div class="chdesc">'+esc(chDesc(c))+'</div>':'')+chFollowBtn(c)+
            '<div class="chrow">'+
-             (chInEarly(c)?'<span class="chpill early"><i class="ti ti-clock-bolt"></i> Early bird live \u00b7 '+esc(chEarlyLeft(c))+' left</span>':'')+
+             (chInEarly(c)?'<span class="chpill early"><i class="ti ti-clock-bolt"></i> Post now: +'+chEarlyXPNow(c)+' XP</span>':'')+
              (c.closes?'<span class="chpill"><i class="ti ti-clock-hour-4"></i> Closes '+esc(c.closes)+'</span>':'')+
            '</div>'+
            '<div class="chtags">'+
              '<div><span>Tag</span><b>@'+esc(igHandle())+'</b></div>'+
              '<div><span>Hashtags</span><b>#'+esc(tourHashtag())+(eventHashtag()&&eventHashtag()!==tourHashtag()?'<br>#'+esc(eventHashtag()):'')+'</b></div>'+
            '</div>'+
-           (chInEarly(c)&&!mine?'<div class="chearly"><i class="ti ti-clock-bolt"></i><div><b>Early bird: +'+chEarlyXP(c)+' XP</b><span>Get it in within '+esc(chEarlyLeft(c))+' (by '+esc(minToHHMM(chEarlyEndsMin(c)))+') and the bonus is yours.</span></div></div>':'')+
+           (chInEarly(c)&&!mine?'<div class="chearly"><i class="ti ti-clock-bolt"></i><div><b>Post now for +'+chEarlyXPNow(c)+' XP on top</b><span>The bonus started at +'+chEarlyXP(c)+' XP and drops the longer you leave it \u2014 it runs down to nothing by '+esc(minToHHMM(chEarlyEndsMin(c)))+'. '+esc(chEarlyLeft(c))+' left.</span></div></div>':'')+
            (!mine&&open&&!firstFinisher(c.id)?'<div class="chfirst"><i class="ti ti-flag-2"></i><div><b>Nobody has done this one yet</b><span>First one in takes the Trailblazer badge.</span></div></div>':'')+
            (c.caption?'<div class="chcap"><div class="l">Caption idea</div>'+capBlock(c.caption,'')+
              '<button class="chcopy" onclick="copyCaption()"><i class="ti ti-copy"></i> Copy caption &amp; tags</button></div>':'')+
@@ -6034,7 +6048,7 @@
       /* Hints for the server-side auto-check. It clamps and re-decides these itself,
          so editing them here gains nothing. */
       xp_base:chXP(c),
-      early_bonus:chInEarly(c)?chEarlyXP(c):0
+      early_bonus:chEarlyXPNow(c)
     };
 
     var send=function(){
