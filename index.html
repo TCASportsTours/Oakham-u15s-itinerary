@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14a · approve-bonus-fix</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14c · tag-bonus</div>
     </section>
 
     <!-- TODAY -->
@@ -5235,12 +5235,22 @@
      from day one until the event finishes. */
   function isTourWide(c){ return !!c && c.span==='tour'; }
   function isPreTour(c){ return !!c && c.span==='pre'; }
+  /* Post-tour: the only kind that stays alive once the tournament is over \u2014 for the
+     photo everyone means to post on the way home and never does. */
+  function isPostTour(c){ return !!c && c.span==='post'; }
+  /* Tag bonus. Post-tour challenges have no early-bird window (the whole point is that
+     there is no rush), so their Early Bonus XP column is read as a tag bonus instead:
+     extra XP for tagging the three accounts. The player declares it at submission and
+     staff can see the claim on the review card \u2014 no machine can read a caption. */
+  var TAG_HANDLES='@globalcricketseries, @mandhcricket and @mysterycricket';
+  function chTagBonus(c){ return isPostTour(c) ? (parseInt(c&&c.earlyXp,10)||0) : 0; }
   /* 'before' / 'during' / 'after'. Falls back to 'during' when the dates can't be read
      and the tour day is being set by hand. */
   function tourPhase(){ var l=liveDayInfo(); return l?l.phase:'during'; }
   function daysUntilTour(){ var l=liveDayInfo(); return (l&&l.phase==='before')?l.daysUntil:0; }
   function preChallenges(){ return CHALLENGES.filter(isPreTour); }
-  function dailyChallenges(){ return CHALLENGES.filter(function(c){ return !isTourWide(c) && !isPreTour(c); }); }
+  function dailyChallenges(){ return CHALLENGES.filter(function(c){ return !isTourWide(c) && !isPreTour(c) && !isPostTour(c); }); }
+  function postChallenges(){ return CHALLENGES.filter(isPostTour); }
   function tourChallenges(){ return CHALLENGES.filter(isTourWide); }
   /* Last day of the tournament, taken from the highest daily challenge day. */
   function lastTourDay(){
@@ -5283,7 +5293,7 @@
      you get, right through the day. */
   function chEarlyEndsMin(c){ return (c&&c.closes)?tmin(c.closes):(tmin(chOpensAt(c))+60); }
   function chEarlyXPNow(c){
-    if(!c || isTourWide(c) || isPreTour(c)) return 0;
+    if(!c || isTourWide(c) || isPreTour(c) || isPostTour(c)) return 0;
     var max=chEarlyXP(c); if(!max) return 0;
     var o=tmin(chOpensAt(c)), cl=chEarlyEndsMin(c), n=nowMin();
     if(cl<=o) return max;
@@ -5292,7 +5302,7 @@
     return Math.max(1, Math.ceil(max*(cl-n)/(cl-o)));
   }
   function chInEarly(c){
-    if(!c || isTourWide(c) || isPreTour(c) || !chEarlyXP(c)) return false;
+    if(!c || isTourWide(c) || isPreTour(c) || isPostTour(c) || !chEarlyXP(c)) return false;
     if(parseInt(c.day,10)!==DEMO_TODAY) return false;
     var n=nowMin();
     return n>=tmin(chOpensAt(c)) && n<chEarlyEndsMin(c);
@@ -5310,6 +5320,12 @@
     /* Once the tournament is over nothing reopens. The tour-day counter clamps to the
        last day, so without this the final day's challenge would come back to life at
        09:00 every morning afterwards. */
+    if(isPostTour(c)){
+      // Opens once the last day is done and stays open until its closing time (if any).
+      if(DEMO_TODAY<lastTourDay()) return false;
+      if(DEMO_TODAY===lastTourDay() && tourPhase()!=='after' && now<tmin(chOpensAt(c))) return false;
+      return true;
+    }
     if(tourPhase()==='after') return false;
     if(isPreTour(c)){
       // Live from the moment it's published, through the build-up and arrival day,
@@ -5334,6 +5350,7 @@
   }
   function chClosedReason(c){
     if(!c) return '';
+    if(isPostTour(c)) return 'Opens when the tournament finishes';
     if(tourPhase()==='after') return 'The tournament has finished';
     if(isPreTour(c)) return 'Closed \u2014 the tournament has started';
     if(isTourWide(c)) return 'This one has closed';
@@ -5673,6 +5690,11 @@
       });
     }
 
+    var post=postChallenges();
+    if(post.length){
+      h+='<div class="eyebrow" style="margin-top:18px">After the tour</div>';
+      post.forEach(function(c){ h+=chCard(c); });
+    }
     var twOpen=tourChallenges();
     if(beforeTour) c=null;                    // day 1 isn't "today" until the tour starts
     if(c || twOpen.length){
@@ -5921,6 +5943,7 @@
         '<label class="chlab" style="margin-top:18px">Who posted it?</label>'+
         '<label class="chpick"><input type="radio" name="chWho" value="self"'+(prefs.who==='self'?' checked':'')+' onchange="chWhoChanged()"><span><b>I posted it from my own account</b><i>You\u2019re 13 or over and it went up from your Instagram or Facebook.</i></span></label>'+
         '<label class="chpick"><input type="radio" name="chWho" value="guardian"'+(prefs.who==='guardian'?' checked':'')+' onchange="chWhoChanged()"><span><b>A parent or guardian posted it for me</b><i>It went up from their account. Same XP either way.</i></span></label>'+
+        (chTagBonus(c)?'<label class="chcheck perm" style="border-color:rgba(255,124,26,.45)"><input type="checkbox" id="chTagged"><span><b>I tagged '+esc(TAG_HANDLES)+'</b> <i>All three, in a public post \u2014 worth an extra '+chTagBonus(c)+' XP. Only tick it if you actually did; staff check.</i></span></label>':'')+
         '<label class="chcheck perm"><input type="checkbox" id="chFeature"'+((prefs.feature===undefined||prefs.feature)?' checked':'')+'><span>GCS can share or repost this. <i>Untick if you\u2019d rather we didn\u2019t \u2014 you still get the full XP either way.</i></span></label>'+
         (remembered?'<div class="chremember"><i class="ti ti-history"></i> Filled in from last time \u2014 change anything that\u2019s different.</div>':'')+
 
@@ -6004,6 +6027,8 @@
     var whoEl=document.querySelector('input[name="chWho"]:checked');
     var who=whoEl?whoEl.value:'';
     var feature=document.getElementById('chFeature').checked;
+    var tagEl=document.getElementById('chTagged');
+    var tagged=!!(tagEl&&tagEl.checked);
 
     if(!who){ chErr('Please say who posted it.'); return; }
     if(!_shotData){ chErr('Please add a screenshot of your post \u2014 that\u2019s how we check it.'); return; }
@@ -6048,7 +6073,8 @@
       /* Hints for the server-side auto-check. It clamps and re-decides these itself,
          so editing them here gains nothing. */
       xp_base:chXP(c),
-      early_bonus:chEarlyXPNow(c)
+      tagged_all:tagged,
+      early_bonus:chEarlyXPNow(c) + (tagged?chTagBonus(c):0)
     };
 
     var send=function(){
@@ -6314,6 +6340,7 @@
            (s.duplicate_of?'<div class="chflag"><i class="ti ti-copy-off"></i> Duplicate link \u2014 already submitted by '+esc(dupeWho(SUBS[s.duplicate_of])||'an earlier entry')+'</div>':'')+
            (s.status==='approved'&&s.auto_approved&&s.verified===false?'<div class="chflag"><i class="ti ti-eye-exclamation"></i> Approved on trust \u2014 nothing to check the link against. Worth a look.</div>':'')+
            (s.auto_result&&!s.duplicate_of?'<div class="chperm'+(s.auto_approved?'':' no')+'"><i class="ti '+(s.auto_approved?'ti-robot':'ti-eye')+'"></i> '+esc(s.auto_result)+(s.auto_approved?' \u2014 auto-approved':'')+'</div>':'')+
+           (s.tagged_all?'<div class="chperm"><i class="ti ti-hash"></i> Claims all three accounts tagged \u2014 check the caption</div>':'')+
            (s.feature_permission?'<div class="chperm"><i class="ti ti-license"></i> Repost permission given</div>':'<div class="chperm no"><i class="ti ti-license-off"></i> No repost permission</div>')+
            (s.posted_by==='self'?'<div class="chperm"><i class="ti ti-user"></i> Posted by the player from their own account</div>':
             s.posted_by==='guardian'?'<div class="chperm"><i class="ti ti-users"></i> Posted by a parent or guardian</div>':
