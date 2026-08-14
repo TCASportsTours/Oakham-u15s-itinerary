@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑13a · sliding-early-bonus</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14a · approve-bonus-fix</div>
     </section>
 
     <!-- TODAY -->
@@ -6348,7 +6348,10 @@
     _chSticky[id]=1;
     var c=challengeById(s.challenge_id);
     s.status='approved'; s.approved_at=Date.now(); s.approved_by=(SETTINGS.tourManager||'GCS Admin');
-    if(!s.xp_awarded) s.xp_awarded=chXP(c);
+    /* Base PLUS the early bonus the player earned at submission. This used to award the
+       base only, so anything approved by hand quietly lost its early-bird XP \u2014 the
+       server's auto-approve path had it right, the staff one did not. */
+    if(!s.xp_awarded) s.xp_awarded=chXP(c)+(parseInt(s.early_bonus,10)||0);
     saveSub(s,function(){
       toast('Approved \u00b7 +'+s.xp_awarded+' XP');
       var p=playerIdParts(s.player_id);
