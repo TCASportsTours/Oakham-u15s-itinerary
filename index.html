@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14c · tag-bonus</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14d · post-tour-deadline</div>
     </section>
 
     <!-- TODAY -->
@@ -5243,6 +5243,18 @@
      extra XP for tagging the three accounts. The player declares it at submission and
      staff can see the claim on the review card \u2014 no machine can read a caption. */
   var TAG_HANDLES='@globalcricketseries, @mandhcricket and @mysterycricket';
+  /* A post-tour challenge outlives the tour, so a bare closing TIME is meaningless \u2014 it
+     needs a date. The Closes cell therefore also accepts a full date-time, e.g.
+     "2026-08-17 20:00" or "17/08/2026 20:00". Returns a timestamp, or 0 if there is no
+     date in there (in which case the challenge simply stays open). */
+  function chCloseStamp(c){
+    var v=String((c&&c.closes)||'').trim(); if(!v) return 0;
+    var m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ]+(\d{1,2}):(\d{2})/);
+    if(m) return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],0).getTime();
+    m=v.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})[T ]+(\d{1,2}):(\d{2})/);
+    if(m) return new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5],0).getTime();
+    return 0;
+  }
   function chTagBonus(c){ return isPostTour(c) ? (parseInt(c&&c.earlyXp,10)||0) : 0; }
   /* 'before' / 'during' / 'after'. Falls back to 'during' when the dates can't be read
      and the tour day is being set by hand. */
@@ -5321,9 +5333,11 @@
        last day, so without this the final day's challenge would come back to life at
        09:00 every morning afterwards. */
     if(isPostTour(c)){
-      // Opens once the last day is done and stays open until its closing time (if any).
+      // Opens once the last day is done, then runs until its closing date-time (if set).
       if(DEMO_TODAY<lastTourDay()) return false;
       if(DEMO_TODAY===lastTourDay() && tourPhase()!=='after' && now<tmin(chOpensAt(c))) return false;
+      var cs=chCloseStamp(c);
+      if(cs && Date.now()>cs) return false;
       return true;
     }
     if(tourPhase()==='after') return false;
@@ -5350,7 +5364,11 @@
   }
   function chClosedReason(c){
     if(!c) return '';
-    if(isPostTour(c)) return 'Opens when the tournament finishes';
+    if(isPostTour(c)){
+      var cs=chCloseStamp(c);
+      if(cs && Date.now()>cs) return 'Closed \u2014 this one has finished';
+      return 'Opens when the tournament finishes';
+    }
     if(tourPhase()==='after') return 'The tournament has finished';
     if(isPreTour(c)) return 'Closed \u2014 the tournament has started';
     if(isTourWide(c)) return 'This one has closed';
