@@ -1005,7 +1005,7 @@
         <div class="err" id="staffErr">That password isn't right. Try again.</div>
       </div>
       <button class="a2hslink" id="a2hsLink" onclick="openA2HS()"><i class="ti ti-device-mobile-down"></i> Add this app to your phone</button>
-      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14d · post-tour-deadline</div>
+      <div style="text-align:center;font-size:10px;color:var(--faint);margin-top:22px;letter-spacing:.04em">Build 2026‑08‑14e · post-tour-card-fix</div>
     </section>
 
     <!-- TODAY -->
@@ -5256,6 +5256,13 @@
     return 0;
   }
   function chTagBonus(c){ return isPostTour(c) ? (parseInt(c&&c.earlyXp,10)||0) : 0; }
+  function chCloseLabel(c){
+    var t=chCloseStamp(c); if(!t) return '';
+    var d=new Date(t), D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return 'Closes '+D[d.getDay()]+' '+d.getDate()+' '+M[d.getMonth()]+', '+
+           ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  }
   /* 'before' / 'during' / 'after'. Falls back to 'during' when the dates can't be read
      and the tour day is being set by hand. */
   function tourPhase(){ var l=liveDayInfo(); return l?l.phase:'during'; }
@@ -5711,7 +5718,32 @@
     var post=postChallenges();
     if(post.length){
       h+='<div class="eyebrow" style="margin-top:18px">After the tour</div>';
-      post.forEach(function(c){ h+=chCard(c); });
+      post.forEach(function(x){
+        var psub=chCanPlay()?mySubFor(x.id):null, popen=chOpen(x), tb=chTagBonus(x);
+        h+='<div class="chcard pretour'+(popen?'':' shut')+'">'+
+             '<div class="chhead">'+
+               '<div style="flex:1;min-width:0">'+
+                 '<div class="cheyebrow"><i class="ti ti-home-heart"></i> After the tour</div>'+
+                 '<div class="chtitle" style="font-size:20px">'+esc(x.title||'')+'</div>'+
+               '</div>'+
+               '<div class="xpbadge"><span class="n">'+chXP(x)+'</span><span class="l">XP</span>'+
+                 (tb?'<span class="plus">+'+tb+' tags</span>':'')+'</div>'+
+             '</div>'+
+             (chDesc(x)?'<div class="chdesc">'+esc(chDesc(x))+'</div>':'')+chFollowBtn(x)+
+             '<div class="chrow"><span class="chpill"><i class="ti ti-clock-hour-4"></i> '+
+               (popen?esc(chCloseLabel(x)||'No deadline'):esc(chClosedReason(x)||'Closed'))+'</span>'+
+               (tb?'<span class="chpill early"><i class="ti ti-hash"></i> +'+tb+' XP for tagging all three</span>':'')+
+             '</div>'+
+             (x.caption?'<div class="chcap"><div class="l">Caption idea</div>'+capBlock(x.caption,esc(x.id))+
+               '<button class="chcopy" onclick="copyCaptionFor(\''+esc(x.id)+'\')"><i class="ti ti-copy"></i> Copy caption &amp; tags</button></div>':'')+
+             (psub
+               ? '<div class="chdone">'+chStatusChip(psub)+(psub.status==='rejected'&&psub.note?'<div class="chnote">'+esc(psub.note)+'</div>':'')+
+                 (psub.status==='rejected'&&popen?'<button class="cta chcta" onclick="openSubmit(\''+esc(x.id)+'\')"><i class="ti ti-refresh"></i> Try again</button>':'')+'</div>'
+               : (popen
+                   ? '<button class="cta chcta" onclick="openSubmit(\''+esc(x.id)+'\')"><i class="ti ti-upload"></i> Submit challenge</button>'
+                   : '<div class="readonly" style="justify-content:flex-start;margin-top:10px"><i class="ti ti-lock"></i> '+esc(chClosedReason(x))+'</div>'))+
+           '</div>';
+      });
     }
     var twOpen=tourChallenges();
     if(beforeTour) c=null;                    // day 1 isn't "today" until the tour starts
